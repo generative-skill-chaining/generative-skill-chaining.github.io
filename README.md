@@ -1,1 +1,1 @@
-# ReorientDiff : Diffusion Model based Reorientation for Object Manipulation
+# Generative Skill Chaining: Long-Horizon Skill Planning with Diffusion Models
