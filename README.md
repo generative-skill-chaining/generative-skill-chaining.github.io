@@ -1,0 +1,1 @@
+# ReorientDiff : Diffusion Model based Reorientation for Object Manipulation
