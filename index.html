@@ -22,6 +22,8 @@
     <script src="./static/js/bulma-carousel.min.js"></script>
     <script src="./static/js/bulma-slider.min.js"></script>
     <script src="./static/js/index.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
 <body>
 
@@ -109,12 +111,12 @@
             <br>
             <br>
             <p>
-              <img alt="task1" src="#" width="16%">
-              <img alt="task2" src="#" width="16%">
-              <img alt="task3" src="#" width="16%">
-              <img alt="task4" src="#" width="16%">
-              <img alt="task5" src="#" width="16%">
-              <img alt="task6" src="#" width="16%">
+              <img alt="task1" src="./assets/gifs/task1.gif" width="16%">
+              <img alt="task2" src="./assets/gifs/task2.gif" width="16%">
+              <img alt="task3" src="./assets/gifs/task3.gif" width="16%">
+              <img alt="task4" src="./assets/gifs/task4.gif" width="16%">
+              <img alt="task5" src="./assets/gifs/task5.gif" width="16%">
+              <img alt="task6" src="./assets/gifs/task6.gif" width="16%">
             </p>
             <br>
             <br>
@@ -132,6 +134,14 @@
       </br>
       TL;DR: We introduce Generative Skill Chaining, a probabilistic framework that learns skill-centric diffusion models and composes their learned distributions to generate long-horizon plans for unseen task skeletons during inference.
       </h2>
+    </div>
+    <br>
+    <br>
+    <div class="columns is-vcentered  is-centered">
+      <video id="teaser" autoplay muted loop height="60%" width="50%">
+        <source src="assets/videos/Intro_Video_GSC.mp4" type="video/mp4">
+      </video>
+      </br>
     </div>
   </div>
 </section>
@@ -165,39 +175,195 @@
   <div class="container is-max-desktop">
     <div class="columns is-centered has-text-centered">
       <div class="column">
-        <br>
-        <img src="assets/images/pitcher_drill.png" class="interpolation-image"
-               alt="" style="display: block; margin-left: auto; margin-right: auto" width="1200"/>
-        <br>
         <h2 class="title is-3">Method</h2>
         <div class="content has-text-justified">
-          
-          <br>
+          <p style="font-size: 125%">
+            GSC is a diffusion model-based <b>generative</b> and <b>compositional</b> framework that allows direct sampling of valid skill chains given a plan skeleton. 
+            Key to our method is skill-level probabilistic generative models that capture the joint distribution of precondition - skill parameter - effect of each skill.
+            To successfully execute a skill, the state must satisfy the precondition of the skill. We train individual diffusion models for each skill to capture this distribution.
+          </p>
         </div>
 
-          <img src="assets/images/#" class="interpolation-image"
-               alt="" style="display: block; margin-left: auto; margin-right: auto" width="1200"/>
-               <div class="content has-text-justified">
-                <br>
+        <img src="assets/images/skill_dist.jpg" class="interpolation-image"
+              alt="" style="display: block; margin-left: auto; margin-right: auto" width="400"/>
 
-          <img src="assets/images/#" class="interpolation-image"
-                alt="" style="display: block; margin-left: auto; margin-right: auto" width="1200"/>
-                <div class="content has-text-justified">
-                <br>
+        <div class="content has-text-justified">
+          <p style="font-size: 125%">
+            Once the skill-level distributions are captured, sampling a valid skill chain boils down to, for each skill in a plan, 
+            conditionally generating skill parameters and post-condition states that satisfy the pre-condition of the next skill, 
+            constrained by the starting state and the final goal. 
+            The critical technical challenge is to ensure that the sequence of skill parameters is achievable from 
+            the initial state <b>(forward flow)</b> to satisfy the long-horizon goal <b>(backward flow)</b> and account for additional constraints.
+            We leverage the continuity impose by overlapping states between skills to ensure that such states ensure <b>skill affordability</b> 
+            for the subsequent skill and <b>reachability (or feasibility of transition)</b> from the state before.
+            This phenomenon is applied while sampling parallelly from all skill-centric factored distributions to solve task-level planning as shown below.
+          </p>
+        </div>
+
+        <img src="assets/images/overview_figure.jpg" class="interpolation-image"
+              alt="" style="display: block; margin-left: auto; margin-right: auto" width="800"/>
+        </div>
+
         </div>
       </div>
     </div>
   </div>
 </section>
 
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column">
+        <h2 class="title is-3">How does compositionality works?</h2>
 
-<section class="hero is-light">
-  <div class="hero-body">
-    <div class="container is-max-widescreen">
+        <img src="assets/images/eq_chain.jpg" class="interpolation-image"
+              alt="" style="display: block; margin-left: auto; margin-right: auto" width="300"/>
+
+        <div class="content has-text-justified">
+          <p style="font-size: 125%">
+            To solve our objective of finding a sequence of suitable skill transitions which satisfies a given skeleton of skills \(\Phi\), an auto-regressive approach primarily used in prior works follows:
+            \[
+            p_\Phi(\textbf{s}^{(0:2)}, \textbf{a}^{(0:1)}| \textbf{s}^{(0)}) \equiv P_{\pi_1}(\textbf{a}^{(0)}|\textbf{s}^{(0)})\;\; T_{\pi_1}(\textbf{s}^{(1)}|\textbf{s}^{(0)}, \textbf{a}^{(0)})\;\; P_{\pi_2}(\textbf{a}^{(1)}|\textbf{s}^{(1)})\;\; T_{\pi_2}(\textbf{s}^{(2)}|\textbf{s}^{(1)}, \textbf{a}^{(1)})
+            \]
+            where \(\pi_i\) is the policy for skill \(i\) and \(T_{\pi_i}\) is the transition model for skill \(i\).
+            However, such formulations are myopic and can only be rolled out in the forward direction without feedback from the final task goal.
+            We transform the unconditional skill diffusion models into a forward and a backward conditional distribution, as 
+            \[
+            p_{\Phi}(\textbf{s}^{(0:2)}, \textbf{a}^{(0:1)}| \textbf{s}^{(0)}) \propto q_{\pi_1}(\textbf{s}^{(0)}, \textbf{a}^{(0)}, \textbf{s}^{(1)}) q_{\pi_2}(\textbf{a}^{(1)}, \textbf{s}^{(2)} | \textbf{s}^{(1)}) = \frac{q_{\pi_1}(\textbf{s}^{(0)}, \textbf{a}^{(0)}, \textbf{s}^{(1)}) q_{\pi_2}(\textbf{s}^{(1)}, \textbf{a}^{(1)}, \textbf{s}^{(2)})}{q_{\pi_2}(\textbf{s}^{(1)})}
+            \]
+            \[
+            p_{\Phi}(\textbf{s}^{(0:2)}, \textbf{a}^{(0:1)}| \textbf{s}^{(2)}) \propto q_{\pi_1}(\textbf{s}^{(0)}, \textbf{a}^{(0)}|\textbf{s}^{(1)}) q_{\pi_2}(\textbf{s}^{(1)}, \textbf{a}^{(1)}, \textbf{s}^{(2)}) = \frac{q_{\pi_1}(\textbf{s}^{(0)}, \textbf{a}^{(0)}, \textbf{s}^{(1)}) q_{\pi_2}(\textbf{s}^{(1)}, \textbf{a}^{(1)}, \textbf{s}^{(2)})}{q_{\pi_1}(\textbf{s}^{(1)})}
+            \]
+            In both equations above, the relations implicitly give rise to the notion of skill affordability and transition feasibility.
+            We transform the probabilities into their respective score functions (\(\nabla_\textbf{x} \log q(\textbf{x})\)) for a particular reverse diffusion sampling step \(t\), we obtain:
+            \[
+            \epsilon_\Phi(\textbf{s}_t^{(0)}, \textbf{a}_t^{(0)}, \textbf{s}_t^{(1)}, \textbf{a}_t^{(1)}, \textbf{s}_t^{(2)}, t) = \epsilon_{\pi_1}(\textbf{s}_t^{(0)}, \textbf{a}_t^{(0)}, \textbf{s}_t^{(1)}, t) + \epsilon_{\pi_2}(\textbf{s}_t^{(1)}, \textbf{a}_t^{(1)}, \textbf{s}_t^{(2)}, t) - \epsilon_{\pi_2}(\textbf{s}_t^{(1)}, t)
+            \]
+            \[
+            \epsilon_\Phi(\textbf{s}_t^{(0)}, \textbf{a}_t^{(0)}, \textbf{s}_t^{(1)}, \textbf{a}_t^{(1)}, \textbf{s}_t^{(2)}, t) = \epsilon_{\pi_1}(\textbf{s}_t^{(0)}, \textbf{a}_t^{(0)}, \textbf{s}_t^{(1)}, t) + \epsilon_{\pi_2}(\textbf{s}_t^{(1)}, \textbf{a}_t^{(1)}, \textbf{s}_t^{(2)}, t) - \epsilon_{\pi_1}(\textbf{s}_t^{(1)}, t)
+            \]
+            respectively. Finally, we linearly combine the score functions from the forward and backward distributions weighted by a dependency factor \(\gamma\):
+            \[
+            \epsilon_\Phi(\textbf{s}_t^{(1)}, t) = \gamma \; \epsilon_{\pi_1}(\textbf{s}_t^{(1)}, t) + (1 - \gamma) \; \epsilon_{\pi_2}(\textbf{s}_t^{(1)}, t),
+            \]
+            \[
+            \epsilon_\Phi(\textbf{s}_t^{(0)}, \textbf{a}_t^{(0)}, \textbf{s}_t^{(1)}, \textbf{a}_t^{(1)}, \textbf{s}_t^{(2)}, t) = \epsilon_{\pi_1}(\textbf{s}_t^{(0)}, \textbf{a}_t^{(0)}, \textbf{s}_t^{(1)}, t) + \epsilon_{\pi_2}(\textbf{s}_t^{(1)}, \textbf{a}_t^{(1)}, \textbf{s}_t^{(2)}, t) - \epsilon_\Phi(\textbf{s}_t^{(1)}, t)
+            \]
+            Here, \(\gamma \in [0, 1]\) is a decision variable that balances the influence of the state in the transition of the skill w.r.t. the subsequent skill and the goal condition. This is an important aspect that governs the behavior of the skills in the sequence and the choice of their respective parameters.
+          </p>
+        </div>
+
+        <img src="assets/images/gamma_effect.jpg" class="interpolation-image"
+              alt="" style="display: block; margin-left: auto; margin-right: auto" width="1200"/>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="container is-max-desktop">
       <!-- Generalization Videos -->
       <div class="columns is-centered has-text-centered">
         <div class="column is-full-width">
           <h2 class="title is-3">Experiments</h2>
+        </div>
+      </div>
+      <div class="columns is-centered has-text-centered">
+        <div class="column">
+            <!-- <h2 class="title is-3"><span
+              class="dvima">Experiments</span></h2>
+            <br> -->
+            <h3 class="title is-4"><span
+              class="dvima">Evaluation on open-loop and closed-loop tasks
+            </span></h3>
+            <br>
+          </div>
+        </div>
+      </div>
+      <div class="columns is-centered">
+        <div class="item">
+          <div style="padding: 5%;">
+            <div class="content has-text-justified">
+              <p style="font-size: 125%;">
+                <b>Task 1</b>: The goal is to place all the blocks on the rack without any collision. One block is already on rack.
+              </p>
+            </div>
+            <video poster="" id="" autoplay controls muted loop height="100%">
+              <source src="assets/videos/Constrained_Packing_Task1.mp4"
+                      type="video/mp4">
+            </video>
+          </div>
+        </div>
+        <div class="item">
+          <div style="padding: 5%;">
+            <div class="content has-text-justified">
+              <p style="font-size: 125%;">
+                <b>Task 2</b>: The goal is to place all the blocks on the rack without any collision. The rack is empty.
+              </p>
+            </div>
+            <video poster="" id="" autoplay controls muted loop height="100%">
+              <source src="assets/videos/Constrained_Packing_Task3.mp4"
+                      type="video/mp4">
+            </video>
+          </div>
+        </div>
+      </div>
+      <div class="columns is-centered">
+        <div class="item">
+          <div style="padding: 5%;">
+            <div class="content has-text-justified">
+              <p style="font-size: 125%;">
+                <b>Task 3</b>: The goal is to place the red block on the rack. Red block is out of workspace so it has to be pulled into the workspace first.
+              </p>
+            </div>
+            <video poster="" id="" autoplay controls muted loop height="100%">
+              <source src="assets/videos/Hook_Reach_Task3.mp4"
+                      type="video/mp4">
+            </video>
+          </div>
+        </div>
+        <div class="item">
+          <div style="padding: 5%;">
+            <div class="content has-text-justified">
+              <p style="font-size: 125%;">
+                <b>Task 4</b>: The goal is to place the red block below the rack. Red block is out of workspace so it has to be pulled into the workspace first. 
+              </p>
+            </div>
+            <video poster="" id="" autoplay controls muted loop height="100%">
+              <source src="assets/videos/Rearrangement_Push_Task4.mp4"
+                      type="video/mp4">
+            </video>
+          </div>
+        </div>
+      </div>
+      <div class="columns is-centered has-text-centered">
+        <div class="column">
+            <!-- <h2 class="title is-3"><span
+              class="dvima">Experiments</span></h2>
+            <br> -->
+            <h3 class="title is-4"><span
+              class="dvima">Response to Perturbations
+            </span></h3>
+            <br>
+            <div class="content has-text-justified">
+              <p style="font-size: 125%;">
+              The goal is to place the red block below the rack. The block position is perturbed and after pose-estimation the robot has to replan to achieve the goal.
+              In this process, the algorithm uses a skill-success predictor model to decide if a skill has been executed successfully or not. If not, it replans the skill parameters from the failed skill.
+              If the model predicts that the skill has been executed successfully, it progresses along the given skill chain and replans from the skill which is required in the current state.
+              </p>
+            </div>
+            <div class="columns is-vcentered  is-centered">
+              <video id="teaser" autoplay muted loop height="80%" width="60%">
+                <source src="assets/videos/Response_to_perturbations.mp4" type="video/mp4">
+              </video>
+              </br>
+            </div>
+            <br>
+            <br>
+          </div>
         </div>
       </div>
     </div>
@@ -208,68 +374,21 @@
 <section class="section is-dark">
   <div class="container is-max-desktop">
     <div class="columns is-centered has-text-centered">
-      <div class="column">
-          <!-- <h2 class="title is-3"><span
-            class="dvima">Experiments</span></h2>
-          <br> -->
-          <h3 class="title is-4"><span
-            class="dvima">Evaluation on open-loop and closed-loop tasks
-          </span></h3>
-
-          <span style="font-size: 110%">
-            
-            <img src="assets/images/#" class="interpolation-image"
-                alt="" style="display: block; margin-left: auto; margin-right: auto" width="600"/>
-                <div class="content has-text-justified">
-                <br>
-          <br>
-          <br>
-        </div>
-      </div>
-    </div>
-  </div>
-          <div class="container is-max-desktop">
-            <div class="columns is-centered has-text-centered">
-              <div class="column">
-                  <h3 class="title is-4"><span
-                    class="dvima">Response to Perturbations
-                  </span></h3>
-                  <br>
-                  <img src="assets/images/#" class="interpolation-image"
-                alt="" style="display: block; margin-left: auto; margin-right: auto" width="1200"/>
-                <div class="content has-text-justified">
-                <br>
-          <br>
-          <br>
-        </div>
-        </div>
-      </div>
-    </div>
-
-        <div>
-          <div class="container is-max-desktop">
-            <div class="columns is-centered has-text-centered">
-              <div class="column">
-                <h4 class="title is-4"><span
-                  class="dvima">
-                </span></h4>
-                <iframe width="1200" height="800" src="https://www.youtube-nocookie.com/embed/#" title="Generative Skill Chaining: Long-Horizon Skill Planning with Diffusion Models" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
-
-                </iframe>
+      <div>
+        <div class="container is-max-desktop">
+          <div class="columns is-centered has-text-centered">
+            <div class="column">
+              <h4 class="title is-4"><span
+                class="dvima">
+              </span></h4>
+              <iframe width="900" height="600" src="https://www.youtube-nocookie.com/embed/#" title="Generative Skill Chaining: Long-Horizon Skill Planning with Diffusion Models" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen>
+              </iframe>
               <br>
               <br>
             </div>
           </div>               
         </div>
-
-                </div>
-              </div>
-        
-            </div>
-          </div>
-        </div>
       </div>
-
     </div>
   </div>
 </section>
@@ -296,14 +415,10 @@
           <p style="font-size: 125%">
             The primary contributions of this work encompass:
             <ul style="font-size: 125%">
-              <li> The first to explore 
+              <li> a generalizable and scalable solution to long-horizon planning with arbitrary task skeletons and constraints.
               </li>
-              <li> A framework which incorporates 
+              <li> establishing compositionality and reason of short-horizon skills for long-horizon dependencies without training on the full task. 
               </li>
-              <li> To address 
-
-              </li>
-
             </ul>
         </p>
 
